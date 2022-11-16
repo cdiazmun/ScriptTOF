@@ -1,7 +1,7 @@
 ---
 title: "Processing samples from GC-TOF-MS"
-author: "Cristian Díaz-Muñoz"
-date: "v3.1."
+author: "Cristian Díaz-Muñoz & Hannes Decadt"
+date: "v3.2."
 output: pdf_document
 ---
 
@@ -11,36 +11,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-This is a guide meant to guide you through a semi-automatic pipeline to process the samples analyzed through headspace/solid-phase microextraction coupled to gas chromatography with time-of-flight mass spectrometry (HS/SPME-GC-TOF-MS). Currently, we use this technique as an untargeted screening tool, in other words, to scan which volatile organic compounds are in the samples. This is, hence, a semi-quantitative approach, as it serves to compare the samples between each other. To do that, we need to include an internal standard (IS) with the sample at the time of the analysis (typically Toluene-D8). We will ultimately use the peak areas of the compounds divided by the IS to generate a principal component analysis (PCA), which will illustrate the dissimilarity between our samples.
+This is a tutorial meant to guide you through a semi-automatic pipeline to process the samples analyzed through headspace/solid-phase microextraction coupled to gas chromatography with time-of-flight mass spectrometry (HS/SPME-GC-TOF-MS). Currently, we use this technique as an untargeted screening tool, in other words, to scan which volatile organic compounds are in the samples. This is, hence, a semi-quantitative approach, as it serves to compare the samples between each other. To do that, we need to include an internal standard (IS) with the sample at the time of the analysis (typically Toluene-D8). We will ultimately use the peak areas of the compounds divided by the IS to generate a principal component analysis (PCA), which will illustrate the dissimilarity between our samples.
 
 # Pre-requisites
 
 Before running the script you need to fill this checklist:
-
-  1) Using the software in the machine itself, check that all your samples have a correct peak of the IS (Toluene-D8).
   
-  2) Output the processed chromatograms using the output format "Sample summary report", which should output an .xls file with only one sheet in it.
+  1) Output the processed chromatograms using the output format "Sample summary report", which should output an .xls file with only one sheet in it.
   
-  3) Do not output the MQ samples. If you did so, remove them before running the script.
+  2) Do not output the MQ samples. If you did so, remove them before running the script.
   
-  4) The .xls files need to be in a separate folder inside your working directory. Name that folder "SSR" (from Sample Summary Report).
+  3) The .xls files need to be in a separate folder inside your working directory. Name that folder "SSR" (from Sample Summary Report).
   
-  5) Your samples need to be named as follows: 
-    sample1_a.xls
-    sample1_b.xls
-    sample1_c.xls
-    sample2_a.xls
-    sample2_b.xls
-    sample2_c.xls
-    ...
-  If your samples are not named like this and need to be renamed I show an example below of how to change them in R.
+  4) Your samples need to be named as follows: sample1_a.xls, sample1_b.xls, sample1_c.xls, sample2_a.xls, sample2_b.xls, sample2_c.xls, ...  If your samples are not named like this and need to be renamed I show an example below of how to change them in R.
   
-  6) Create another folder named "Output reports".
+  5) Create another folder named "Output reports".
   
 
 # Usage
 
-The script presented in this guide is based on ScriptTof_v2.R from Hannes DeCadt and it is updated by Cristian Díaz-Muñoz --> ScriptTof_v3.R
+The script presented in this guide is based on ScriptTof.R from Hannes Decadt and it is updated by Cristian Díaz-Muñoz --> ScriptTof_v3.R
 
 The script takes the "sample summary report" output files from the GC-TOF-MS and process them doing:
 
@@ -117,7 +107,7 @@ for (i in 1:length(files)) {
 }
 ```
 
-*Check* that the .txt files generated are okay and that there is not any "NA.txt".
+**Check** that the .txt files generated are okay and that there is not any "NA.txt".
 
 ## 2) Flag all duplicated compounds and merge all files together
 
@@ -165,7 +155,15 @@ write.table(file = "Output reports/all_samples.txt",
             x = df_all, sep = "\t", dec = ".", quote = FALSE, row.names = FALSE)
 ```
 
-A good *check* to ensure that everything is going alright is to look at a specific compound from a specific sample and check if the RT and Area are the same in "all_samples.txt" and the individual sample from the previous step.
+A good **check** to ensure that everything is going alright is to look at a specific compound from a specific sample and check if the RT and Area are the same in "all_samples.txt" and the individual sample from the previous step.
+
+We are also going to perform an **ESSENTIAL CHECK**. We need to know if all samples have been processed correctly in the software of the TOF. To do a fast check of that, we are going to see if Toluene-D8 (or the IS you used, change accordinglt then) is present in all samples. If it is not present, it possibly means that the peak identification and processing of that sample is wrong. So you should go back to the TOF and reprocess those samples. Then, run the script from the beginning. 
+
+```{IS}
+check_list <- df_all$Sample[df_all$Compound == "Toluene-D8"]
+print(paste("There are ", length(files2) - length(check_list), " files with no Toluene-D8"))
+```
+
 
 ## 3) Eliminate those compounds present in only 1 out of 3 samples
 
