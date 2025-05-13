@@ -41,7 +41,7 @@ Let's get into the matter. We will use an example with samples from *a fermented
 
 Import all needed libraries to run the script.
 
-```{r libraries, eval = FALSE}
+```r
 library(readxl) # To open excel files
 library(tidyverse) # Type of R syntax, to make code easier
 library(reshape2) # To transform dataframes
@@ -49,14 +49,14 @@ library(reshape2) # To transform dataframes
 
 Set the working directory.
 
-```{r wd, eval = FALSE}
+```r
 setwd("C:/path/to/your/working/directory/")
 samples_wd <- "C:/path/to/your/working/directory/SSR/"
 ```
 
 List all files in the folder (all your samples).
 
-```{r filenames, eval = FALSE}
+```r
 files <- list.files(path = samples_wd, pattern=".xls")
 # This option if your samples already have the correct names:
 names <- as.vector(sapply(strsplit(basename(files), ".xls"), `[`, 1)) 
@@ -78,7 +78,7 @@ For the latter option, we just created a vector (names_2) with a repetition of "
 
 ### 1) Reshape the dataframe and get the best hit for each RT
 
-```{r for1, eval = FALSE}
+```r
 for (i in 1:length(files)) {
   # Import all files. 32 first rows are always empty, so can be skipped.
   df <- read_excel(path = paste("SSR/",files[i], sep = ""), skip=32) 
@@ -107,21 +107,21 @@ for (i in 1:length(files)) {
 
 First, we need to list all files in the folder (all txt files in this case, which we just generated above). Is very important to sort the names_f, as you will import the new files in alphabetical order.
 
-```{r filenames2, eval = FALSE}
+```r
 files2 <- list.files(path = samples_wd, pattern=".txt")
 names_f2 <- sort(names_f)
 ```
 
 Create an empty data frame.
 
-```{r df, eval = FALSE}
+```r
 df_all <- data.frame(matrix(ncol = 7, nrow = 0))
 colnames(df_all) <- c("Compound", "CAS", "RT", "MF", "Area", "Sample", "Duplicated")
 ```
 
 Run the next for loop to proceed to the flagging of duplicated compounds.
 
-```{r for2, eval = FALSE}
+```r
 for (i in 1:length(files2)) {
   # Import all the files.
   df2 <- read.delim(file = paste("SSR/",files2[i], sep = ""))
@@ -144,7 +144,7 @@ for (i in 1:length(files2)) {
 
 Write the table in tsv format (easy to work with in R and Excel).
 
-```{r write, eval = FALSE}
+```r
 write.table(file = "Output reports/all_samples.txt", 
             x = df_all, sep = "\t", dec = ".", quote = FALSE, row.names = FALSE)
 ```
@@ -153,7 +153,7 @@ A good **check** to ensure that everything is going alright is to look at a spec
 
 We are also going to perform an **ESSENTIAL CHECK**. We need to know if all samples have been processed correctly in the software of the TOF. To do a fast check of that, we are going to see if Toluene-D8 (or the IS you used, change accordinglt then) is present in all samples. If it is not present, it possibly means that the peak identification and processing of that sample is wrong. So you should go back to the TOF and reprocess those samples. Then, run the script from the beginning. 
 
-```{r IS, eval = FALSE}
+```r
 check_list <- df_all$Sample[df_all$Compound == "Toluene-D8"]
 print(paste("There are ", length(files2) - length(check_list), " files with no Toluene-D8"))
 ```
@@ -163,7 +163,7 @@ print(paste("There are ", length(files2) - length(check_list), " files with no T
 
 Add a column with the triplicate info (change according to the name of the file). We first create a copy of the previous df, but as a new variable (df_tri). Then, we divide the column sample by the underscore ("_"), select the third field, and output it as a new column called Rep. Finally, we eliminate the third field from the column Sample. 
 
-```{r tri, eval = FALSE}
+```r
 df_tri <- df_all
 df_tri$Rep <- sapply(strsplit(basename(as.character(df_tri$Sample)), "_"), `[`, 3)
 df_tri$Sample <- paste(sapply(strsplit(basename(as.character(df_tri$Sample)), "_"), `[`, 1),
@@ -173,7 +173,7 @@ df_tri$Sample <- paste(sapply(strsplit(basename(as.character(df_tri$Sample)), "_
 
 Calculate the standard deviation for each compound in the triplicate. The aim behind this is that if there is one compound that is only present in 1 out of 3 samples, the SD will be NA. We will then filter them out using this.
 
-```{r sd, eval = FALSE}
+```r
 df_tri <- df_tri %>%
   group_by(Compound, Sample) %>%
   mutate(Area_SD = sd(Area))
@@ -181,20 +181,20 @@ df_tri <- df_tri %>%
 
 Eliminate all the compounds with non-existing SD (present in only 1 sample).
 
-```{r cur, eval = FALSE}
+```r
 df_cur <- subset(df_tri, df_tri$Area_SD > 0)
 ```
 
 We can now count how many duplicates there are still in the samples. In this case, before and after removing the compounds present in only 1 sample.
 
-```{r count, eval = FALSE}
+```r
 length(df_all$Compound[df_all$Duplicated == TRUE])
 length(df_cur$Compound[df_cur$Duplicated == TRUE])
 ```
 
 Write the table in tsv format (easy to work with in R and Excel).
 
-```{r write2, eval = FALSE}
+```r
 write.table(file = "Output reports/all.samples.curated.txt", 
             x = df_cur, sep = "\t", dec = ".", quote = FALSE, row.names = FALSE)
 ```
@@ -203,7 +203,7 @@ write.table(file = "Output reports/all.samples.curated.txt",
 
 Calculate the mean for every numeric column and remove the replicates.
 
-```{r mean, eval = FALSE}
+```r
 df_av <- df_cur %>%
   group_by(Compound, Sample) %>%
   mutate(RT_SD = sd(RT)) %>%
@@ -212,7 +212,7 @@ df_av <- df_cur %>%
 
 Write the table in tsv format (easy to work with in R and Excel)
 
-```{r write3, eval = FALSE}
+```r
 write.table(file = "Output reports/all.samples.curated.averaged.txt", 
             x = df_av, sep = "\t", dec = ".", quote = FALSE, row.names = FALSE)
 ```
